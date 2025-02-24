@@ -1,0 +1,100 @@
+name: Cross-Platform Build aria2
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: android
+            arch: aarch64
+            host: aarch64-linux-android
+            api_level: 24
+          - target: windows
+            arch: x86_64
+            host: x86_64-w64-mingw32
+          - target: linux
+            arch: arm64
+            host: aarch64-linux-gnu
+          - target: linux
+            arch: amd64
+            host: x86_64-linux-gnu
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          automake autoconf libtool gettext \
+          pkg-config cmake git make g++ \
+          gcc-mingw-w64 g++-mingw-w64 \
+          gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+          zlib1g-dev libssh2-1-dev libc-ares-dev \
+          libsqlite3-dev libssl-dev libxml2-dev
+
+    - name: Setup Android NDK
+      if: matrix.target == 'android'
+      uses: android-actions/setup-android@v3
+      with:
+        ndk-version: 25b
+
+    - name: Configure environment
+      run: |
+        echo "HOST=${{ matrix.host }}" >> $GITHUB_ENV
+        echo "ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
+        
+        if [ "${{ matrix.target }}" = "android" ]; then
+          export NDK_ROOT="$ANDROID_NDK_HOME"
+          export TOOLCHAIN=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
+          echo "CC=$TOOLCHAIN/bin/${{ matrix.host }}${{ matrix.api_level }}-clang" >> $GITHUB_ENV
+          echo "CXX=$TOOLCHAIN/bin/${{ matrix.host }}${{ matrix.api_level }}-clang++" >> $GITHUB_ENV
+          echo "AR=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
+          echo "LD=$TOOLCHAIN/bin/ld" >> $GITHUB_ENV
+          echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV
+          echo "STRIP=$TOOLCHAIN/bin/llvm-strip" >> $GITHUB_ENV
+        elif [ "${{ matrix.target }}" = "windows" ]; then
+          echo "CC=${{ matrix.host }}-gcc" >> $GITHUB_ENV
+          echo "CXX=${{ matrix.host }}-g++" >> $GITHUB_ENV
+          echo "AR=${{ matrix.host }}-ar" >> $GITHUB_ENV
+        fi
+
+    - name: Generate configure script
+      run: autoreconf -i
+
+    - name: Run configure
+      run: |
+        ./configure \
+          --host=${{ matrix.host }} \
+          --build=`config.guess` \
+          --disable-nls \
+          --without-libuv \
+          --with-openssl \
+          --with-libxml2 \
+          --with-sqlite3 \
+          --with-libz \
+          --with-libssh2 \
+          --enable-static=yes \
+          --enable-shared=no
+
+    - name: Build aria2
+      run: make -j$(nproc)
+
+    - name: Rename binary
+      run: |
+        if [ "${{ matrix.target }}" = "windows" ]; then
+          mv src/aria2c src/aria2c.exe
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: aria2-${{ matrix.target }}-${{ matrix.arch }}
+        path: src/aria2c*
