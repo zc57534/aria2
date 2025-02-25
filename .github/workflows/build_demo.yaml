@@ -1,7 +1,6 @@
 name: Cross-Platform Build
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main, master ]
   pull_request:
@@ -14,21 +13,24 @@ jobs:
     strategy:
       matrix:
         include:
+          # Linux 架构
           - os: ubuntu-22.04
             arch: x86_64
-            host: x86_64-linux-gnu
+            toolchain: x86_64-linux-gnu
             artifact: aria2-linux-x64
           - os: ubuntu-22.04
             arch: aarch64
-            host: aarch64-linux-gnu
+            toolchain: aarch64-linux-gnu
             artifact: aria2-linux-arm64
+          # Windows 架构
           - os: windows-latest
             arch: x86_64
-            host: x86_64-w64-mingw32
+            toolchain: x86_64-w64-mingw32
             artifact: aria2-windows-x64
+          # macOS 架构
           - os: macos-latest
             arch: x86_64
-            host: x86_64-apple-darwin
+            toolchain: x86_64-apple-darwin
             artifact: aria2-macos-x64
 
     steps:
@@ -37,15 +39,20 @@ jobs:
 
     - name: Install dependencies
       run: |
+        # Ubuntu 环境安装交叉编译工具链
         if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
           sudo apt-get update
           sudo apt-get install -y \
             automake autoconf libtool \
-            libssh2-1-dev libssl-dev libc-ares-dev libxml2-dev \
+            libssh2-1-dev libssl-dev libc-ares-dev \
             zlib1g-dev libsqlite3-dev pkg-config \
-            gcc-${matrix.host} g++-${matrix.host}
+            gcc-${matrix.toolchain} g++-${matrix.toolchain}
+        
+        # Windows 环境安装 MinGW
         elif [ "${{ matrix.os }}" = "windows-latest" ]; then
           choco install -y mingw
+        
+        # macOS 环境安装依赖
         elif [ "${{ matrix.os }}" = "macos-latest" ]; then
           brew install automake autoconf libtool openssl c-ares libssh2
         fi
@@ -54,7 +61,7 @@ jobs:
       run: |
         autoreconf -i
         ./configure \
-          --host=${{ matrix.host }} \
+          --host=${{ matrix.toolchain }} \
           --enable-static=yes \
           --without-libxml2 \
           --with-libssh2 \
@@ -69,7 +76,7 @@ jobs:
     - name: Compile
       run: |
         make -j$(nproc)
-        ${{ matrix.host }}-strip src/aria2c
+        ${{ matrix.toolchain }}-strip src/aria2c
 
     - name: Rename binary
       run: |
