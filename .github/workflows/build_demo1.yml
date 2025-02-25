@@ -1,12 +1,19 @@
 name: Build aria2
 
 on:
-  workflow_dispatch
-  
+  workflow_dispatch:
   push:
     branches: [ "alpha" ]
   pull_request:
     branches: [ "alpha" ]
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 执行任务
+        run: echo "工作流被手动触发了！"
+
 
 jobs:
   linux-build:
