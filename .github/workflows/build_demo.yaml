@@ -97,6 +97,15 @@ jobs:
         ./configure \
           --without-openssl --without-gnutls --with-appletls \
           --disable-nls
+    # 修改后步骤
     - name: Build aria2
       run: |
-        make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
+        make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"  # 移除 check 保留默认构建目标
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: aria2-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.crypto }}
+        path: |
+          src/aria2c
+          config.log          # 包含编译日志
