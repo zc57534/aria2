@@ -1,4 +1,4 @@
-name: Enhanced Build
+name: build
 
 on: [push, pull_request]
 
@@ -11,22 +11,20 @@ jobs:
         crypto: [openssl, gnutls]
         bittorrent: [with-bt, without-bt]
         exclude:
-          - os: macos-14
-            crypto: gnutls
-          - crypto: openssl
-            bittorrent: without-bt
+        - os: macos-14
+          crypto: gnutls
+        - crypto: openssl
+          bittorrent: without-bt
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
-    
-    # 依赖安装步骤（含上述优化）
     - name: Linux setup
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
+        sudo apt-get install \
           g++-12 \
           clang-15 \
           autoconf \
@@ -35,76 +33,70 @@ jobs:
           autopoint \
           libtool \
           pkg-config \
-          libssl-dev=3.0.11-1ubuntu4 \
-          libgnutls28-dev=3.8.3-1ubuntu1 \
+          libssl-dev \
+          libgnutls28-dev \
           libc-ares-dev \
           zlib1g-dev \
           libsqlite3-dev \
           libssh2-1-dev \
-          libcppunit-dev \
-          libxml2-dev \
-          libxslt1-dev
-    
+          libcppunit-dev
     - name: MacOS setup
       if: runner.os == 'macOS'
       run: |
-        brew install automake@1.16.5 gettext openssl libssh2 c-ares sqlite3 pkg-config libtool
-        export SSL_CERT_FILE=/usr/local/etc/openssl/cert.pem
-        echo "SSL_CERT_FILE=${SSL_CERT_FILE}" >> $GITHUB_ENV
-    
-    # 编译器配置（含上述优化）
+        brew install cppunit gettext openssl libssh2 c-ares sqlite3 \
+          autoconf automake pkg-config libtool
     - name: Setup clang (Linux)
       if: runner.os == 'Linux' && matrix.compiler == 'clang'
       run: |
-        echo 'CC=clang-15 -fuse-ld=lld' >> $GITHUB_ENV
-        echo 'CXX=clang++-15 -stdlib=libc++' >> $GITHUB_ENV
-        echo 'AR=llvm-ar-15' >> $GITHUB_ENV
-    
+        echo 'CC=clang-15' >> $GITHUB_ENV
+        echo 'CXX=clang++-15' >> $GITHUB_ENV
+    - name: Setup clang (MacOS)
+      if: runner.os == 'macOS' && matrix.compiler == 'clang'
+      run: |
+        echo 'CC=clang' >> $GITHUB_ENV
+        echo 'CXX=clang++' >> $GITHUB_ENV
     - name: Setup gcc (Linux)
       if: runner.os == 'Linux' && matrix.compiler == 'gcc'
       run: |
         echo 'CC=gcc-12' >> $GITHUB_ENV
         echo 'CXX=g++-12' >> $GITHUB_ENV
-    
-    # 构建流程优化
+    - name: Setup gcc (MacOS)
+      if: runner.os == 'macOS' && matrix.compiler == 'gcc'
+      run: |
+        echo 'CC=gcc' >> $GITHUB_ENV
+        echo 'CXX=g++' >> $GITHUB_ENV
     - name: Libtool
-      run: autoreconf -i
-    
-    - name: Configure
       run: |
-        if [ "${{ runner.os }}" = "Linux" ]; then
-          ./configure \
-            --with-${{ matrix.crypto }} \
-            --${{ matrix.bittorrent }} \
-            --with-libxml2 \
-            --with-libxslt
-        else
-          ./configure \
-            --with-appletls \
-            --disable-nls \
-            --${{ matrix.bittorrent }}
-        fi
-    
-    - name: Build
-      run: make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
-    
-    - name: Test
-      run: make check
-    
-    # 产物收集与上传（关键步骤）
-    - name: Collect binaries
+        autoreconf -i
+    - name: Setup compiler flags
       run: |
-        mkdir -p dist
-        if [ "${{ runner.os }}" = "macOS" ]; then
-          cp src/aria2c dist/aria2c-${{ matrix.os }}-${{ matrix.compiler }}
-        else
-          strip src/aria2c -o dist/aria2c-${{ matrix.os }}-${{ matrix.compiler }}
-        fi
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: aria2c-builds
-        path: dist/aria2c-*
-        retention-days: 3
-        include-hidden-files: true
+        asanflags="-fsanitize=address,undefined -fno-sanitize-recover=undefined"
+
+        CPPFLAGS="$asanflags -g3"
+        LDFLAGS="$asanflags"
+
+        echo 'CPPFLAGS='"$CPPFLAGS" >> $GITHUB_ENV
+        echo 'LDFLAGS='"$LDFLAGS" >> $GITHUB_ENV
+    - name: Disable BitTorrent
+      if: matrix.bittorrent == 'without-bt'
+      run: |
+        FEATURE_FLAGS="$FEATURE_FLAGS --disable-bittorrent"
+
+        echo 'FEATURE_FLAGS='"$FEATURE_FLAGS" >> $GITHUB_ENV
+    - name: Configure autotools (Linux, gnutls)
+      if: runner.os == 'Linux' && matrix.crypto == 'gnutls'
+      run: |
+        ./configure --with-gnutls --without-openssl $FEATURE_FLAGS
+    - name: Configure autotools (Linux, openssl)
+      if: runner.os == 'Linux' && matrix.crypto == 'openssl'
+      run: |
+        ./configure --without-gnutls --with-openssl $FEATURE_FLAGS
+    - name: Configure autotools (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        ./configure \
+          --without-openssl --without-gnutls --with-appletls \
+          --disable-nls
+    - name: Build aria2
+      run: |
+        make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
