@@ -1,93 +1,110 @@
-name: Cross-Platform Build
+name: Enhanced Build
 
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+on: [push, pull_request]
 
 jobs:
   build:
-    name: Build (${{ matrix.os }} - ${{ matrix.arch }})
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          # Linux 架构
-          - os: ubuntu-22.04
-            arch: x86_64
-            toolchain: x86_64-linux-gnu
-            artifact: aria2-linux-x64
-          - os: ubuntu-22.04
-            arch: aarch64
-            toolchain: aarch64-linux-gnu
-            artifact: aria2-linux-arm64
-          # Windows 架构
-          - os: windows-latest
-            arch: x86_64
-            toolchain: x86_64-w64-mingw32
-            artifact: aria2-windows-x64
-          # macOS 架构
-          - os: macos-latest
-            arch: x86_64
-            toolchain: x86_64-apple-darwin
-            artifact: aria2-macos-x64
+        os: [ubuntu-22.04, macos-14]
+        compiler: [gcc, clang]
+        crypto: [openssl, gnutls]
+        bittorrent: [with-bt, without-bt]
+        exclude:
+          - os: macos-14
+            crypto: gnutls
+          - crypto: openssl
+            bittorrent: without-bt
+
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install dependencies
+    - uses: actions/checkout@v4
+    
+    # 依赖安装步骤（含上述优化）
+    - name: Linux setup
+      if: runner.os == 'Linux'
       run: |
-        # Ubuntu 环境安装交叉编译工具链
-        if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
-          sudo apt-get update
-          sudo apt-get install -y \
-            automake autoconf libtool \
-            libssh2-1-dev libssl-dev libc-ares-dev \
-            zlib1g-dev libsqlite3-dev pkg-config \
-            gcc-${matrix.toolchain} g++-${matrix.toolchain}
-        
-        # Windows 环境安装 MinGW
-        elif [ "${{ matrix.os }}" = "windows-latest" ]; then
-          choco install -y mingw
-        
-        # macOS 环境安装依赖
-        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-          brew install automake autoconf libtool openssl c-ares libssh2
-        fi
-
-    - name: Bootstrap
+        sudo apt-get update
+        sudo apt-get install -y \
+          g++-12 \
+          clang-15 \
+          autoconf \
+          automake \
+          autotools-dev \
+          autopoint \
+          libtool \
+          pkg-config \
+          libssl-dev=3.0.11-1ubuntu4 \
+          libgnutls28-dev=3.8.3-1ubuntu1 \
+          libc-ares-dev \
+          zlib1g-dev \
+          libsqlite3-dev \
+          libssh2-1-dev \
+          libcppunit-dev \
+          libxml2-dev \
+          libxslt1-dev
+    
+    - name: MacOS setup
+      if: runner.os == 'macOS'
       run: |
-        autoreconf -i
-        ./configure \
-          --host=${{ matrix.toolchain }} \
-          --enable-static=yes \
-          --without-libxml2 \
-          --with-libssh2 \
-          --with-openssl \
-          --with-sqlite3 \
-          --with-libcares \
-          --without-gnutls \
-          --without-libnettle \
-          --without-libgmp \
-          --without-libexpat
-
-    - name: Compile
+        brew install automake@1.16.5 gettext openssl libssh2 c-ares sqlite3 pkg-config libtool
+        export SSL_CERT_FILE=/usr/local/etc/openssl/cert.pem
+        echo "SSL_CERT_FILE=${SSL_CERT_FILE}" >> $GITHUB_ENV
+    
+    # 编译器配置（含上述优化）
+    - name: Setup clang (Linux)
+      if: runner.os == 'Linux' && matrix.compiler == 'clang'
       run: |
-        make -j$(nproc)
-        ${{ matrix.toolchain }}-strip src/aria2c
-
-    - name: Rename binary
+        echo 'CC=clang-15 -fuse-ld=lld' >> $GITHUB_ENV
+        echo 'CXX=clang++-15 -stdlib=libc++' >> $GITHUB_ENV
+        echo 'AR=llvm-ar-15' >> $GITHUB_ENV
+    
+    - name: Setup gcc (Linux)
+      if: runner.os == 'Linux' && matrix.compiler == 'gcc'
       run: |
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          mv src/aria2c.exe src/aria2c-${{ matrix.arch }}.exe
+        echo 'CC=gcc-12' >> $GITHUB_ENV
+        echo 'CXX=g++-12' >> $GITHUB_ENV
+    
+    # 构建流程优化
+    - name: Libtool
+      run: autoreconf -i
+    
+    - name: Configure
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          ./configure \
+            --with-${{ matrix.crypto }} \
+            --${{ matrix.bittorrent }} \
+            --with-libxml2 \
+            --with-libxslt
         else
-          mv src/aria2c src/aria2c-${{ matrix.arch }}
+          ./configure \
+            --with-appletls \
+            --disable-nls \
+            --${{ matrix.bittorrent }}
         fi
-
+    
+    - name: Build
+      run: make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
+    
+    - name: Test
+      run: make check
+    
+    # 产物收集与上传（关键步骤）
+    - name: Collect binaries
+      run: |
+        mkdir -p dist
+        if [ "${{ runner.os }}" = "macOS" ]; then
+          cp src/aria2c dist/aria2c-${{ matrix.os }}-${{ matrix.compiler }}
+        else
+          strip src/aria2c -o dist/aria2c-${{ matrix.os }}-${{ matrix.compiler }}
+        fi
+    
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.artifact }}
-        path: src/aria2c-*
+        name: aria2c-builds
+        path: dist/aria2c-*
+        retention-days: 3
+        include-hidden-files: true
