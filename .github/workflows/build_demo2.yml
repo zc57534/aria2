@@ -95,7 +95,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: aria2c
-          path: /home/runner/work/aria2/aria2/src
+          path: /home/runner/work/aria2/aria2/src/aria2c
 
       - name: Clean up
         run: make clean
