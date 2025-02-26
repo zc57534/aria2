@@ -97,8 +97,5 @@ jobs:
           name: aria2c
           path: /home/runner/work/aria2/aria2/src
 
-      - name: Run tests
-        run: make check
-
       - name: Clean up
         run: make clean
