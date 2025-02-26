@@ -34,18 +34,22 @@ jobs:
       - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
+          sudo apt-get install \
+            g++-12 \
+            clang-15 \
             autoconf \
             automake \
+            autotools-dev \
+            autopoint \
             libtool \
             pkg-config \
             libssl-dev \
-            libboost-all-dev \
-            libz-dev \
-            libxml2-dev \
             libgnutls28-dev \
-            libsodium-dev
+            libc-ares-dev \
+            zlib1g-dev \
+            libsqlite3-dev \
+            libssh2-1-dev \
+            libcppunit-dev
 
       - name: Set up cross-compilation tools for Raspberry Pi (if applicable)
         if: matrix.platform == 'raspberrypi'
