@@ -51,6 +51,10 @@ jobs:
             libssh2-1-dev \
             libcppunit-dev
 
+      - name: Generate configure script
+        run: |
+          autoreconf -i
+
       - name: Set up cross-compilation tools for Raspberry Pi (if applicable)
         if: matrix.platform == 'raspberrypi'
         run: |
