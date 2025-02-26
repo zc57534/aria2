@@ -1,0 +1,95 @@
+name: Build and Upload aria2
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        platform: [x86_64, arm64, raspberrypi]
+        include:
+          - os: ubuntu-latest
+            platform: raspberrypi
+          - os: ubuntu-latest
+            platform: arm64
+          - os: ubuntu-latest
+            platform: x86_64
+          - os: macos-latest
+            platform: x86_64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            libssl-dev \
+            libboost-all-dev \
+            libz-dev \
+            libxml2-dev \
+            libgnutls28-dev \
+            libsodium-dev
+
+      - name: Set up cross-compilation tools for Raspberry Pi (if applicable)
+        if: matrix.platform == 'raspberrypi'
+        run: |
+          sudo apt-get install -y \
+            gcc-arm-linux-gnueabihf \
+            g++-arm-linux-gnueabihf
+
+      - name: Set up cross-compilation tools for Android (if applicable)
+        if: matrix.platform == 'android'
+        run: |
+          docker pull ubuntu:latest
+          docker run --rm \
+            -v $(pwd):/aria2 \
+            -w /aria2 \
+            ubuntu:latest \
+            bash -c "apt-get update && apt-get install -y \
+            build-essential \
+            clang \
+            make \
+            git \
+            libssl-dev \
+            libz-dev \
+            && ./build_test.sh android"
+
+      - name: Build aria2
+        run: |
+          if [ "${{ matrix.platform }}" == "raspberrypi" ]; then
+            ./configure --host=arm-linux-gnueabihf
+          elif [ "${{ matrix.platform }}" == "x86_64" ]; then
+            ./configure --host=x86_64-linux-gnu
+          elif [ "${{ matrix.platform }}" == "arm64" ]; then
+            ./configure --host=aarch64-linux-gnu
+          fi
+          make
+          sudo make install
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aria2-build
+          path: ./bin/*
+
+      - name: Run tests
+        run: make check
+
+      - name: Clean up
+        run: make clean
