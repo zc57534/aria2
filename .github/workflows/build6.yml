@@ -60,13 +60,13 @@ jobs:
       - name: Setup environment variables
         run: |
           if [[ "${{ matrix.target }}" == android* ]]; then
-            echo "CC=$TOOLCHAIN/bin/${{ matrix.toolchain }}" >> $GITHUB_ENV
-            echo "CXX=$TOOLCHAIN/bin/${{ matrix.toolchain }}++" >> $GITHUB_ENV
-            echo "AR=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
-            echo "LD=$TOOLCHAIN/bin/ld" >> $GITHUB_ENV
-            echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV
-            echo "STRIP=$TOOLCHAIN/bin/llvm-strip" >> $GITHUB_ENV
-            echo "SYSROOT=$TOOLCHAIN/sysroot" >> $GITHUB_ENV
+          echo "CC=$TOOLCHAIN/bin/${{ matrix.toolchain }}" >> $GITHUB_ENV
+          echo "CXX=$TOOLCHAIN/bin/${{ matrix.toolchain }}++" >> $GITHUB_ENV
+          echo "AR=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
+          echo "LD=$TOOLCHAIN/bin/ld" >> $GITHUB_ENV
+          echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV 
+          echo "STRIP=$TOOLCHAIN/bin/llvm-strip" >> $GITHUB_ENV
+          echo "SYSROOT=$TOOLCHAIN/sysroot" >> $GITHUB_ENV 
           elif [[ "${{ matrix.target }}" == linux* ]]; then
             echo "CC=${{ matrix.host }}-gcc" >> $GITHUB_ENV
             echo "CXX=${{ matrix.host }}-g++" >> $GITHUB_ENV
@@ -74,6 +74,25 @@ jobs:
             echo "CC=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV
             echo "CXX=x86_64-w64-mingw32-g++" >> $GITHUB_ENV
           fi
+
+
+      - name: Install full autotools chain
+        run: |
+          sudo apt-get install -y \
+            autoconf \
+            automake \
+            libtool \
+            gettext \
+            pkg-config \
+            libltdl-dev \
+            autopoint
+
+      - name: Generate configure script
+        run: |
+          # 添加详细日志输出
+          autoreconf -vif 2>&1 | tee autoreconf.log
+          [ -f configure ] || (echo "Configure script missing!" && exit 1)
+
 
       - name: Generate configure script
         run: autoreconf -i
