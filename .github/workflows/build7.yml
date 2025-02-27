@@ -11,8 +11,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: linux-arm64
-            host: aarch64-linux-gnu
+   #       - target: linux-arm64
+   #         host: aarch64-linux-gnu
           - target: android-arm64
             host: aarch64-linux-android
             toolchain: aarch64-linux-android21-clang
