@@ -35,7 +35,9 @@ jobs:
           
           sudo apt-get update
           sudo apt-get install -y wget libcurl4-openssl-dev libevent-dev ca-certificates libssl-dev pkg-config build-essential intltool git autoconf automake libtool autopoint libxml2-dev liblzma-dev zlib1g-dev libgcrypt-dev libc-ares-dev libsqlite3-dev lzma
+          sudo ldconfig
 
+   
       - name: Generate configure script
         run: |
           autoreconf -i
