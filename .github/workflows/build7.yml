@@ -29,14 +29,14 @@ jobs:
             host: aarch64-linux-gnu
             target: aria2c_linux_arm64
             cross_compile: true
-          - platform: windows-x64
-            host: x86_64-w64-mingw32
-            target: aria2c_windows_x64.exe
-            cross_compile: true
-          - platform: windows-x86
-            host: i686-w64-mingw32
-            target: aria2c_windows_x86.exe
-            cross_compile: true
+         # - platform: windows-x64
+          #  host: x86_64-w64-mingw32
+           # target: aria2c_windows_x64.exe
+            #cross_compile: true
+          #- platform: windows-x86
+           # host: i686-w64-mingw32
+            #target: aria2c_windows_x86.exe
+            #cross_compile: true
 
     steps:
       - name: Checkout repository
