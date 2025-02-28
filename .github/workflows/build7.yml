@@ -16,7 +16,7 @@ jobs:
           - platform: android-arm64
             host: arm-linux-androideabi
             target: aria2c_android_arm64
-            cross_compile: true
+            cross_compile: false
           - platform: linux-amd64
             host: x86_64-linux-gnu
             target: aria2c_linux_amd64
@@ -24,7 +24,7 @@ jobs:
           - platform: linux-arm64
             host: aarch64-linux-gnu
             target: aria2c_linux_arm64
-            cross_compile: true
+            cross_compile: false
 
     steps:
       - name: Checkout repository
