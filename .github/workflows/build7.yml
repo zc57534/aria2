@@ -1,4 +1,4 @@
-name: Build and Upload aria2
+name: Build7
 
 on:
   workflow_dispatch:
