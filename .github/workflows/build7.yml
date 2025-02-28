@@ -90,11 +90,11 @@ jobs:
       - name: Build aria2
         run: |
           if [ "${{ matrix.platform }}" == "android-arm64" ]; then
-            ./configure --host=arm-linux-androideabi --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
+            ./configure --host=arm-linux-androideabi --without-gnutls --with-openssl ARIA2_STATIC=yes
           elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
-            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
+            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl ARIA2_STATIC=yes
           elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
-            ./configure --host=aarch64-linux-gnu --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
+            ./configure --host=aarch64-linux-gnu --without-gnutls --with-openssl ARIA2_STATIC=yes
           fi
           make
 
