@@ -32,19 +32,17 @@ jobs:
 
       - name: Set up dependencies
         run: |
-          
           sudo apt-get update
           sudo apt-get install -y tree which wget libcurl4-openssl-dev libevent-dev ca-certificates libssl-dev pkg-config build-essential intltool git autoconf automake libtool autopoint libxml2-dev liblzma-dev zlib1g-dev libgcrypt-dev libc-ares-dev libsqlite3-dev lzma
           sudo ldconfig
-          tree /usr/bin > ./build_output/bin.txt
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: aria
-          path: ./build_output/*
+      - name: Check /usr/bin directory and relevant libraries
+        run: |
+          # Only list the relevant libraries and executables
+          echo "Checking for necessary libraries..."
+          ls /usr/bin | grep -E 'ld|gcc|g++|cares'
+          ls /usr/lib | grep -i 'cares'
 
-   
       - name: Generate configure script
         run: |
           autoreconf -i
@@ -52,7 +50,6 @@ jobs:
       - name: Set up cross-compilation tools
         run: |
           if [ "${{ matrix.platform }}" == "android-arm64" ]; then
-            # Set up Android NDK for ARM64
             export ANDROID_NDK_HOME=/path/to/android-ndk
             export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
             export CC=clang
@@ -63,7 +60,6 @@ jobs:
             export RANLIB=llvm-ranlib
             export STRIP=llvm-strip
           elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
-            # Set up cross-compilation tools for AMD64
             export CC=x86_64-linux-gnu-gcc
             export CXX=x86_64-linux-gnu-g++
             export AR=x86_64-linux-gnu-ar
@@ -72,7 +68,6 @@ jobs:
             export RANLIB=x86_64-linux-gnu-ranlib
             export STRIP=x86_64-linux-gnu-strip
           elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
-            # Set up cross-compilation tools for ARM64
             export CC=aarch64-linux-gnu-gcc
             export CXX=aarch64-linux-gnu-g++
             export AR=aarch64-linux-gnu-ar
@@ -96,16 +91,10 @@ jobs:
       - name: Rename and collect build artifacts
         run: |
           mkdir -p build_output
-          if [ "${{ matrix.platform }}" == "android-arm64" ]; then
-            mv src/aria2c build_output/aria2
-          elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
-            mv src/aria2c build_output/aria2
-          elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
-            mv src/aria2c build_output/aria2
-          fi
+          mv src/aria2c build_output/aria2
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: aria2-${{ matrix.platform }}-${{ matrix.compiler }}-${{ matrix.crypto }}
-          path: build_output/*
+          name: aria2-${{ matrix.platform }}
+          path: build_output/aria2
