@@ -34,9 +34,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git tree which wget libcurl4-openssl-dev libevent-dev ca-certificates libssl-dev pkg-config build-essential intltool git autoconf automake libtool autopoint libxml2-dev liblzma-dev zlib1g-dev libgcrypt-dev libc-ares-dev libsqlite3-dev lzma
-          git clone https://github.com/c-ares/c-ares.git
-          ls
-          cd c-ares
+          wget https://github.com/c-ares/c-ares/releases/download/v1.34.4/c-ares-1.34.4.tar.gz
+          tar -xzvf c-ares-1.34.4.tar.gz
+          cd c-ares-1.34.4
           ./configure
           make
           make install
