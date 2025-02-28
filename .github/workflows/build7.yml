@@ -1,109 +1,129 @@
-name: Build7
+name: Build and Upload aria2
 
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     strategy:
       matrix:
+        platform: [android-arm64, linux-amd64, linux-arm64, windows-x64, windows-x86]
         include:
-   #       - target: linux-arm64
-   #         host: aarch64-linux-gnu
-          - target: android-arm64
-            host: aarch64-linux-android
-            toolchain: aarch64-linux-android21-clang
+          - platform: android-arm64
+            host: arm-linux-androideabi
+            target: aria2c_android_arm64
+            cross_compile: true
+          - platform: linux-amd64
+            host: x86_64-linux-gnu
+            target: aria2c_linux_amd64
+            cross_compile: true
+          - platform: linux-arm64
+            host: aarch64-linux-gnu
+            target: aria2c_linux_arm64
+            cross_compile: true
+          - platform: windows-x64
+            host: x86_64-w64-mingw32
+            target: aria2c_windows_x64.exe
+            cross_compile: true
+          - platform: windows-x86
+            host: i686-w64-mingw32
+            target: aria2c_windows_x86.exe
+            cross_compile: true
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install base dependencies
+      - name: Set up dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            autoconf automake build-essential libtool pkg-config \
-            zlib1g-dev libsqlite3-dev libssl-dev libgnutls28-dev \
-            libc-ares-dev libssh2-1-dev libcppunit-dev curl unzip \
-            gettext autopoint
+            g++-12 \
+            clang-15 \
+            autoconf \
+            automake \
+            autotools-dev \
+            autopoint \
+            libtool \
+            pkg-config \
+            libssl-dev \
+            libgnutls28-dev \
+            libc-ares-dev \
+            zlib1g-dev \
+            libsqlite3-dev \
+            libssh2-1-dev \
+            libcppunit-dev \
+            mingw-w64
 
-      - name: Setup Android NDK (Only for Android)
-        if: matrix.target == 'android-arm64'
+      - name: Generate configure script
         run: |
-          NDK_VERSION="r25b"
-          NDK_ZIP="android-ndk-$NDK_VERSION-linux.zip"
-          wget -q https://dl.google.com/android/repository/$NDK_ZIP
-          unzip -q $NDK_ZIP -d /tmp
-          echo "NDK_ROOT=/tmp/android-ndk-$NDK_VERSION" >> $GITHUB_ENV
-          echo "TOOLCHAIN=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
+          autoreconf -i
 
-      - name: Install cross-compiler (Linux ARM64)
-        if: matrix.target == 'linux-arm64'
-        run: sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: Setup environment variables
+      - name: Set up cross-compilation tools
         run: |
-          if [ "${{ matrix.target }}" == "android-arm64" ]; then
-            echo "CC=$TOOLCHAIN/bin/${{ matrix.toolchain }}" >> $GITHUB_ENV
-            echo "CXX=$TOOLCHAIN/bin/${{ matrix.toolchain }}++" >> $GITHUB_ENV
-            echo "AR=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
-          elif [ "${{ matrix.target }}" == "linux-arm64" ]; then
-            echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-            echo "CXX=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+          if [ "${{ matrix.platform }}" == "android-arm64" ]; then
+            # Set up Android NDK for ARM64
+            export ANDROID_NDK_HOME=/path/to/android-ndk
+            export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+            export CC=clang
+            export CXX=clang++
+            export AR=llvm-ar
+            export AS=llvm-as
+            export LD=ld.lld
+            export RANLIB=llvm-ranlib
+            export STRIP=llvm-strip
+          elif [ "${{ matrix.platform }}" == "windows-x64" ] || [ "${{ matrix.platform }}" == "windows-x86" ]; then
+            # Set up MinGW for Windows cross-compilation
+            export PATH=/usr/x86_64-w64-mingw32/bin:$PATH
+            export CC=x86_64-w64-mingw32-gcc
+            export CXX=x86_64-w64-mingw32-g++
+            export AR=x86_64-w64-mingw32-ar
+            export AS=x86_64-w64-mingw32-as
+            export LD=x86_64-w64-mingw32-ld
+            export RANLIB=x86_64-w64-mingw32-ranlib
+            export STRIP=x86_64-w64-mingw32-strip
           fi
 
-      - name: Generate configure script (Debug)
+      - name: Build aria2
         run: |
-          # 调试信息输出
-          echo "--- Autotools versions ---"
-          autoreconf --version
-          aclocal --version
-          automake --version
-          autoconf --version
+          if [ "${{ matrix.platform }}" == "android-arm64" ]; then
+            ./configure --host=arm-linux-androideabi --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
+          elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
+            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
+          elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
+            ./configure --host=aarch64-linux-gnu --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
+          elif [ "${{ matrix.platform }}" == "windows-x64" ]; then
+            ./configure --host=x86_64-w64-mingw32 --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
+          elif [ "${{ matrix.platform }}" == "windows-x86" ]; then
+            ./configure --host=i686-w64-mingw32 --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
+          fi
+          make
 
-          # 分步执行生成过程
-          aclocal -I m4
-          libtoolize --force --copy --automake
-          autoheader
-          automake --add-missing --copy --force-missing
-          autoconf -f
-
-          # 验证生成文件
-          [ -f configure ] || (echo "Missing configure script!"; exit 1)
-          [ -f Makefile.in ] || (echo "Missing Makefile.in!"; exit 1)
-
-      - name: Configure build
+      - name: Rename and collect build artifacts
         run: |
-          CONFIG_FLAGS="--host=${{ matrix.host }}"
-          
-          if [ "${{ matrix.target }}" == "android-arm64" ]; then
-            CONFIG_FLAGS="$CONFIG_FLAGS \
-              --disable-shared \
-              --enable-static \
-              --with-openssl \
-              --with-libssh2 \
-              --with-sqlite3 \
-              CXXFLAGS='-static-libstdc++ -fPIE' \
-              LDFLAGS='-fPIE -pie'"
+          mkdir -p build_output
+          if [ "${{ matrix.platform }}" == "android-arm64" ]; then
+            mv src/aria2c build_output/aria2c_android_arm64
+          elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
+            mv src/aria2c build_output/aria2c_linux_amd64
+          elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
+            mv src/aria2c build_output/aria2c_linux_arm64
+          elif [ "${{ matrix.platform }}" == "windows-x64" ]; then
+            mv src/aria2c.exe build_output/aria2c_windows_x64.exe
+          elif [ "${{ matrix.platform }}" == "windows-x86" ]; then
+            mv src/aria2c.exe build_output/aria2c_windows_x86.exe
           fi
 
-          ./configure $CONFIG_FLAGS
-
-      - name: Build executable
-        run: |
-          make -j$(nproc)
-          mkdir -p artifacts
-          if [ "${{ matrix.target }}" == "android-arm64" ]; then
-            cp src/aria2c artifacts/aria2c-${{ matrix.target }}
-          else
-            cp src/aria2c artifacts/aria2c-${{ matrix.target }}
-          fi
-
-      - name: Upload artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: aria2c-arm64
-          path: artifacts/
+          name: aria2-build
+          path: build_output/*
