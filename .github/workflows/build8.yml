@@ -32,23 +32,9 @@ jobs:
 
       - name: Set up dependencies
         run: |
+          
           sudo apt-get update
-          sudo apt-get install \
-          g++-12 \
-          clang-15 \
-          autoconf \
-          automake \
-          autotools-dev \
-          autopoint \
-          libtool \
-          pkg-config \
-          libssl-dev \
-          libgnutls28-dev \
-          libc-ares-dev \
-          zlib1g-dev \
-          libsqlite3-dev \
-          libssh2-1-dev \
-          libcppunit-dev 
+          sudo apt-get install -y wget libcurl4-openssl-dev libevent-dev ca-certificates libssl-dev pkg-config build-essential intltool git autoconf automake libtool autopoint libxml2-dev liblzma-dev zlib1g-dev libgcrypt-dev libc-ares-dev libsqlite3-dev lzma
 
       - name: Generate configure script
         run: |
