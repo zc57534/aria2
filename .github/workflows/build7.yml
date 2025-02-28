@@ -16,7 +16,7 @@ jobs:
           - platform: android-arm64
             host: arm-linux-androideabi
             target: aria2c_android_arm64
-            cross_compile: false
+            cross_compile: true
           - platform: linux-amd64
             host: x86_64-linux-gnu
             target: aria2c_linux_amd64
@@ -24,7 +24,7 @@ jobs:
           - platform: linux-arm64
             host: aarch64-linux-gnu
             target: aria2c_linux_arm64
-            cross_compile: false
+            cross_compile: true
 
     steps:
       - name: Checkout repository
@@ -90,13 +90,13 @@ jobs:
       - name: Build aria2
         run: |
           if [ "${{ matrix.platform }}" == "android-arm64" ]; then
-            ./configure --host=arm-linux-androideabi --without-gnutls --with-openssl ARIA2_STATIC=yes
+            ./configure --host=arm-linux-androideabi --without-gnutls --with-openssl
           elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
-            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl ARIA2_STATIC=yes
+            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl
           elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
-            ./configure --host=aarch64-linux-gnu --without-gnutls --with-openssl ARIA2_STATIC=yes
+            ./configure --host=aarch64-linux-gnu --without-gnutls --with-openssl
           fi
-          make
+          make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
 
       - name: Rename and collect build artifacts
         run: |
