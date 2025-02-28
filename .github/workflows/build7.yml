@@ -53,7 +53,9 @@ jobs:
             libsqlite3-dev \
             libssh2-1-dev \
             libcppunit-dev \
-            mingw-w64
+            mingw-w64 \
+            libgpg-error-dev \
+            libcares-dev
 
       - name: Generate configure script
         run: |
