@@ -37,26 +37,22 @@ jobs:
       - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            g++-12 \
-            clang-15 \
-            autoconf \
-            automake \
-            autotools-dev \
-            autopoint \
-            libtool \
-            pkg-config \
-            libssl-dev \
-            libgnutls28-dev \
-            libc-ares-dev \
-            zlib1g-dev \
-            libsqlite3-dev \
-            libssh2-1-dev \
-            libcppunit-dev \
-            mingw-w64 \
-            libgpg-error-dev \
-            libc-ares-dev \
-            libxml2-dev
+          sudo apt-get install \
+          g++-12 \
+          clang-15 \
+          autoconf \
+          automake \
+          autotools-dev \
+          autopoint \
+          libtool \
+          pkg-config \
+          libssl-dev \
+          libgnutls28-dev \
+          libc-ares-dev \
+          zlib1g-dev \
+          libsqlite3-dev \
+          libssh2-1-dev \
+          libcppunit-dev
 
       - name: Generate configure script
         run: |
