@@ -55,7 +55,7 @@ jobs:
             libcppunit-dev \
             mingw-w64 \
             libgpg-error-dev \
-            libcares-dev
+            libc-ares-dev
 
       - name: Generate configure script
         run: |
