@@ -1,90 +1,120 @@
-name: Build8
+name: Build aria2 (Modern)
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
-        compiler: [g++-12, clang++-15]
+        compiler: [gcc-13, clang-17]
+        include:
+          - compiler: gcc-13
+            cc: gcc-13
+            cxx: g++-13
+          - compiler: clang-17
+            cc: clang-17
+            cxx: clang++-17
     name: Build with ${{ matrix.compiler }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y \
-          # 编译工具链
-          ${{ matrix.compiler }} \
-          autoconf \
-          automake \
-          autotools-dev \
-          autopoint \
-          libtool \
-          pkg-config \
-          # 核心依赖库
-          libssl-dev \
-          libgnutls28-dev \
-          libc-ares-dev \
-          zlib1g-dev \
-          libsqlite3-dev \
-          libssh2-1-dev \
-          libxml2-dev \
-          libcppunit-dev \
-          # 附加依赖
-          libgmp-dev \
-          libexpat1-dev \
-          # 构建工具
-          make cmake \
-          git curl
+      - name: Setup build environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-        # 设置默认编译器
-        if [[ "${{ matrix.compiler }}" == g++-12 ]]; then
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
-          sudo update-alternatives --config g++ -y
-        fi
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ccache
+            ${{ github.workspace }}/autom4te.cache
+          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ hashFiles('**/configure.ac') }}
 
-        # 验证关键库存在
-        echo "Checking libraries..."
-        ls /usr/lib/*/libcares.so* || echo "c-ares library missing!"
-        ls /usr/include/cares/*.h || echo "c-ares headers missing!"
-        sudo ldconfig
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            ${{ matrix.cc }} \
+            ${{ matrix.cxx }} \
+            autoconf-archive \
+            automake1.16 \
+            libtool-bin \
+            pkg-config \
+            # Core dependencies
+            libssl-dev \
+            libgnutls30-dev \
+            libc-ares-dev \
+            zlib1g-dev \
+            libsqlite3-dev \
+            libssh2-2-dev \
+            libxml2-dev \
+            libcppunit-dev \
+            libgmp-dev \
+            # Modern compression
+            libzstd-dev \
+            libbrotli-dev \
+            # Tools
+            jq patchelf
 
-    - name: Configure and build
-      run: |
-        # 清理和准备
-        autoreconf -i
-        ./bootstrap
+          # Set compiler alternatives
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/${{ matrix.cc }} 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/${{ matrix.cxx }} 100
+          sudo update-alternatives --config gcc
+          sudo update-alternatives --config g++
 
-        # 配置参数
-        ./configure \
-          --disable-static \
-          --enable-shared \
-          --with-libxml2 \
-          --with-libssh2 \
-          --with-sqlite3 \
-          --with-gnutls \
-          --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt
+      - name: Configure build
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+          CXXFLAGS: "-O3 -march=native -flto=auto"
+        run: |
+          ./bootstrap
+          ./configure \
+            --prefix=/usr \
+            --sysconfdir=/etc \
+            --with-libcares \
+            --with-libxml2 \
+            --with-openssl \
+            --with-libssh2 \
+            --with-libzstd \
+            --with-brotli \
+            --enable-websocket \
+            --enable-jemalloc
 
-        # 并行编译
-        make -j$(nproc) V=1
+      - name: Compile with optimizations
+        run: |
+          make -j$(($(nproc) + 1)) \
+            ARIA2_STATIC=yes \
+            STRIP_BINARIES=yes
 
-        # 验证二进制文件
-        ldd src/aria2c | grep 'cares'
-        ./src/aria2c --version
+      - name: Verify binary
+        run: |
+          file src/aria2c
+          ldd src/aria2c | grep -E 'ssl|cares|ssh2'
+          ./src/aria2c --check-certificate=false --version
 
-    - name: Artifact upload
-      if: ${{ success() }}
-      uses: actions/upload-artifact@v3
-      with:
-        name: aria2c-binary
-        path: src/aria2c
+      - name: Package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aria2c-${{ matrix.compiler }}-${{ github.sha }}
+          path: |
+            src/aria2c
+            config.log
+          compression-level: 9
+          if-no-files-found: error
+
+      - name: Upload release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: src/aria2c
+          generate_release_notes: true
