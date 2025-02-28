@@ -36,13 +36,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y tree which wget libcurl4-openssl-dev libevent-dev ca-certificates libssl-dev pkg-config build-essential intltool git autoconf automake libtool autopoint libxml2-dev liblzma-dev zlib1g-dev libgcrypt-dev libc-ares-dev libsqlite3-dev lzma
           sudo ldconfig
-          tree /usr/bin > build_output/bin.txt
+          tree /usr/bin > ./build_output/bin.txt
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: aria2-${{ matrix.platform }}-${{ matrix.compiler }}-${{ matrix.crypto }}
-          path: build_output/*
+          name: aria
+          path: ./build_output/*
 
    
       - name: Generate configure script
