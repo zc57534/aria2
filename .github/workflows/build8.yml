@@ -76,11 +76,11 @@ jobs:
       - name: Build aria2
         run: |
           if [ "${{ matrix.platform }}" == "android-arm64" ]; then
-            ./configure --host=arm-linux-androideabi --without-gnutls --with-openssl
+            ./configure --host=arm-linux-androideabi --without-gnutls --with-openssl ARIA2_STATIC=yes
           elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
-            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl
+            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl ARIA2_STATIC=yes
           elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
-            ./configure --host=aarch64-linux-gnu --without-gnutls --with-openssl
+            ./configure --host=aarch64-linux-gnu --without-gnutls --with-openssl ARIA2_STATIC=yes
           fi
           make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
 
@@ -88,11 +88,11 @@ jobs:
         run: |
           mkdir -p build_output
           if [ "${{ matrix.platform }}" == "android-arm64" ]; then
-            mv src/aria2c build_output/aria2-${{ matrix.platform }}-${{ matrix.compiler }}-${{ matrix.crypto }}
+            mv src/aria2c build_output/aria2
           elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
-            mv src/aria2c build_output/aria2-${{ matrix.platform }}-${{ matrix.compiler }}-${{ matrix.crypto }}
+            mv src/aria2c build_output/aria2
           elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
-            mv src/aria2c build_output/aria2-${{ matrix.platform }}-${{ matrix.compiler }}-${{ matrix.crypto }}
+            mv src/aria2c build_output/aria2
           fi
 
       - name: Upload build artifacts
