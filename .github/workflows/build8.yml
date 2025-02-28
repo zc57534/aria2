@@ -1,4 +1,4 @@
-name: Build8
+name: Build7
 
 on:
   workflow_dispatch:
@@ -112,5 +112,5 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: aria2-build
+          name: aria2-${{ matrix.platform }}-${{ matrix.compiler }}-${{ matrix.crypto }}
           path: build_output/*
