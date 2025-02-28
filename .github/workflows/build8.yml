@@ -1,0 +1,89 @@
+name: Build8
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [g++-12, clang++-15]
+    name: Build with ${{ matrix.compiler }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y \
+          # 编译工具链
+          ${{ matrix.compiler }} \
+          autoconf \
+          automake \
+          autotools-dev \
+          autopoint \
+          libtool \
+          pkg-config \
+          # 核心依赖库
+          libssl-dev \
+          libgnutls28-dev \
+          libc-ares-dev \
+          zlib1g-dev \
+          libsqlite3-dev \
+          libssh2-1-dev \
+          libxml2-dev \
+          libcppunit-dev \
+          # 附加依赖
+          libgmp-dev \
+          libexpat1-dev \
+          # 构建工具
+          make cmake \
+          git curl
+
+        # 设置默认编译器
+        if [[ "${{ matrix.compiler }}" == g++-12 ]]; then
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
+          sudo update-alternatives --config g++ -y
+        fi
+
+        # 验证关键库存在
+        echo "Checking libraries..."
+        ls /usr/lib/*/libcares.so* || echo "c-ares library missing!"
+        ls /usr/include/cares/*.h || echo "c-ares headers missing!"
+        sudo ldconfig
+
+    - name: Configure and build
+      run: |
+        # 清理和准备
+        autoreconf -i
+        ./bootstrap
+
+        # 配置参数
+        ./configure \
+          --disable-static \
+          --enable-shared \
+          --with-libxml2 \
+          --with-libssh2 \
+          --with-sqlite3 \
+          --with-gnutls \
+          --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt
+
+        # 并行编译
+        make -j$(nproc) V=1
+
+        # 验证二进制文件
+        ldd src/aria2c | grep 'cares'
+        ./src/aria2c --version
+
+    - name: Artifact upload
+      if: ${{ success() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: aria2c-binary
+        path: src/aria2c
