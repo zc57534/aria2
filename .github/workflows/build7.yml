@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        platform: [android-arm64, linux-amd64, linux-arm64, windows-x64, windows-x86]
+        platform: [android-arm64, linux-amd64, linux-arm64]
         include:
           - platform: android-arm64
             host: arm-linux-androideabi
@@ -29,14 +29,6 @@ jobs:
             host: aarch64-linux-gnu
             target: aria2c_linux_arm64
             cross_compile: true
-         # - platform: windows-x64
-          #  host: x86_64-w64-mingw32
-           # target: aria2c_windows_x64.exe
-            #cross_compile: true
-          #- platform: windows-x86
-           # host: i686-w64-mingw32
-            #target: aria2c_windows_x86.exe
-            #cross_compile: true
 
     steps:
       - name: Checkout repository
@@ -80,16 +72,24 @@ jobs:
             export LD=ld.lld
             export RANLIB=llvm-ranlib
             export STRIP=llvm-strip
-          elif [ "${{ matrix.platform }}" == "windows-x64" ] || [ "${{ matrix.platform }}" == "windows-x86" ]; then
-            # Set up MinGW for Windows cross-compilation
-            export PATH=/usr/x86_64-w64-mingw32/bin:$PATH
-            export CC=x86_64-w64-mingw32-gcc
-            export CXX=x86_64-w64-mingw32-g++
-            export AR=x86_64-w64-mingw32-ar
-            export AS=x86_64-w64-mingw32-as
-            export LD=x86_64-w64-mingw32-ld
-            export RANLIB=x86_64-w64-mingw32-ranlib
-            export STRIP=x86_64-w64-mingw32-strip
+          elif [ "${{ matrix.platform }}" == "linux-amd64" ]; then
+            # Set up cross-compilation tools for AMD64
+            export CC=x86_64-linux-gnu-gcc
+            export CXX=x86_64-linux-gnu-g++
+            export AR=x86_64-linux-gnu-ar
+            export AS=x86_64-linux-gnu-as
+            export LD=x86_64-linux-gnu-ld
+            export RANLIB=x86_64-linux-gnu-ranlib
+            export STRIP=x86_64-linux-gnu-strip
+          elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
+            # Set up cross-compilation tools for ARM64
+            export CC=aarch64-linux-gnu-gcc
+            export CXX=aarch64-linux-gnu-g++
+            export AR=aarch64-linux-gnu-ar
+            export AS=aarch64-linux-gnu-as
+            export LD=aarch64-linux-gnu-ld
+            export RANLIB=aarch64-linux-gnu-ranlib
+            export STRIP=aarch64-linux-gnu-strip
           fi
 
       - name: Build aria2
@@ -100,10 +100,6 @@ jobs:
             ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
           elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
             ./configure --host=aarch64-linux-gnu --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
-          elif [ "${{ matrix.platform }}" == "windows-x64" ]; then
-            ./configure --host=x86_64-w64-mingw32 --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
-          elif [ "${{ matrix.platform }}" == "windows-x86" ]; then
-            ./configure --host=i686-w64-mingw32 --without-gnutls --with-openssl --without-libxml2 ARIA2_STATIC=yes
           fi
           make
 
@@ -116,10 +112,6 @@ jobs:
             mv src/aria2c build_output/aria2c_linux_amd64
           elif [ "${{ matrix.platform }}" == "linux-arm64" ]; then
             mv src/aria2c build_output/aria2c_linux_arm64
-          elif [ "${{ matrix.platform }}" == "windows-x64" ]; then
-            mv src/aria2c.exe build_output/aria2c_windows_x64.exe
-          elif [ "${{ matrix.platform }}" == "windows-x86" ]; then
-            mv src/aria2c.exe build_output/aria2c_windows_x86.exe
           fi
 
       - name: Upload build artifacts
