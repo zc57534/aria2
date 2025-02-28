@@ -46,7 +46,7 @@ jobs:
             ${{ matrix.cc }} \
             ${{ matrix.cxx }} \
             autoconf-archive \
-            automake1.16 \
+            automake \
             libtool-bin \
             pkg-config \
             # Core dependencies
