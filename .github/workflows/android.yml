@@ -4,34 +4,27 @@ on:
   workflow_dispatch:
   push:
     paths:
-    - Dockerfile.android
-
-permissions: read-all
+      - Dockerfile.android
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     steps:
+    # 1. 拉取代码
     - uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+    # 2. 纯编译（无缓存/无优化）
+    - name: Build with Docker
+      run: |
+        docker build \
+          -f Dockerfile.android \
+          --output type=local,dest=./ \
+          .
 
-    - name: Build and Export
-      uses: docker/build-push-action@v6
-      with:
-        file: Dockerfile.android
-        outputs: type=local,dest=./,tar=false
-        # 强制使用旧版构建模式
-        no-cache: true
-        platforms: linux/amd64  # 明确指定平台
-
-    - name: Check File Exists
-      run: ls -lh ./aria2c
-
+    # 3. 直接上传产物
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: aria2-android
-        path: ./aria2c
+        name: aria2c-android
+        path: /output/aria2c
