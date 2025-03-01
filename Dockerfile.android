@@ -1,6 +1,7 @@
 # vim: ft=dockerfile:
 FROM ubuntu:22.04
-MAINTAINER Tatsuhiro Tsujikawa
+
+LABEL maintainer="Tatsuhiro Tsujikawa"
 
 ENV THREADS="$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
 
