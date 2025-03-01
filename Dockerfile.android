@@ -6,7 +6,7 @@
 # 3. 添加构建产物输出目录
 
 FROM ubuntu:22.04
-LABEL maintainer="Tatsuhiro Tsujikawa"  # 使用现代 LABEL 替代 MAINTAINER
+LABEL maintainer="Tatsuhiro Tsujikawa"
 
 # 定义构建线程数变量（兼容 Linux/macOS）
 ENV THREADS="$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
