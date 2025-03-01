@@ -28,4 +28,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: aria2
-        path: src/aria2
+        path: /root/build/aria2/src
