@@ -1,4 +1,3 @@
-# 第一阶段：构建aria2
 FROM ubuntu:22.04 as builder
 MAINTAINER Tatsuhiro Tsujikawa
 
@@ -118,14 +117,13 @@ RUN autoreconf -i && \
       --with-libcares \
       --with-libz \
       --with-libssh2 \
-      CXXFLAGS="-Os -g" \
-      CFLAGS="-Os -g" \
+      LDFLAGS="-all-static -L$PREFIX/lib -ldl" \
+      CXXFLAGS="-Os -g -static" \
+      CFLAGS="-Os -g -static" \
       CPPFLAGS="-fPIE" \
-      LDFLAGS="-fPIE -pie -L$PREFIX/lib -static-libstdc++" \
       PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" && \
     make -j$(nproc) && \
     $STRIP src/aria2c
 
-# 第二阶段：复制二进制文件到最终镜像
 FROM ubuntu:22.04
 COPY --from=builder /root/build/aria2/src/aria2c /output/aria2c
