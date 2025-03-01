@@ -31,7 +31,7 @@ ENV AR=$TOOLCHAIN/bin/llvm-ar \
     CXX=$TOOLCHAIN/bin/${HOST}${API}-clang++ \
     LD=$TOOLCHAIN/bin/ld \
     RANDLIB=$TOOLCHAIN/bin/llvm-ranlib \
-    STRIP=$TOOLCHAIN/bin/llvm-strip \  # 确保 STRIP 变量正确定义
+    STRIP=$TOOLCHAIN/bin/llvm-strip \
     PREFIX=/root/usr/local
 
 # Download NDK
@@ -120,7 +120,7 @@ RUN ./configure \
       --disable-shared && \
     make -j${THREADS} install
 
-# Build aria2 (关键修复步骤)
+# Build aria2
 WORKDIR /root/build
 RUN git clone -b ${ARIA2_VERSION} --depth 1 https://github.com/aria2/aria2
 
@@ -144,10 +144,8 @@ RUN autoreconf -i && \
       LDFLAGS="-fPIE -pie -L${PREFIX}/lib -static-libstdc++" \
       PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" && \
     make -j${THREADS} && \
-    ${STRIP} src/aria2c  # 关键修复：使用 ${STRIP} 明确变量引用
+    ${STRIP} src/aria2c
 
-# 复制构建产物到输出目录
 RUN mkdir -p /output && cp /root/build/aria2/src/aria2c /output
 
-# 定义输出卷（适配 GitHub Actions）
 VOLUME /output
