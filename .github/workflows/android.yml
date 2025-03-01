@@ -23,9 +23,11 @@ jobs:
       with:
         file: Dockerfile.android
         context: .
-        
+    - name: cpoutput
+      run: |
+        sudo mv /root/build/aria2/src/aria2c ./aria2c
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: aria2
-        path: /root/build/aria2/src
+        path: ./aria2c
