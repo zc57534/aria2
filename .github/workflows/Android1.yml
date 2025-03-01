@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - Dockerfile.android
+      - Dockerfile.android1
 
 jobs:
   build:
