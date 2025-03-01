@@ -103,6 +103,7 @@ RUN ./configure \
 WORKDIR /root/build
 RUN git clone -b $ARIA2_VERSION --depth 1 https://github.com/aria2/aria2
 
+# 构建 aria2
 WORKDIR /root/build/aria2
 RUN autoreconf -i && \
     ./configure \
@@ -125,4 +126,10 @@ RUN autoreconf -i && \
     make -j$(nproc) && \
     $STRIP src/aria2c
 
-RUN mkdir -p /output && cp /root/build/aria2/src/aria2c /output
+# 关键修改：强制清理所有中间文件
+RUN mkdir -p /output && \
+    cp /root/build/aria2/src/aria2c /output && \
+    rm -rf /root/*  # 清理所有非/output内容
+
+# 只保留最终文件
+WORKDIR /output
