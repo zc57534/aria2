@@ -56,7 +56,6 @@ jobs:
             ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl --enable-static=yes --disable-shared CXXFLAGS="-Os -static" CFLAGS="-Os -static" LDFLAGS="-static"
           fi
           make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
-          $STRIP src/aria2c
 
       - name: Rename and collect build artifacts
         run: |
