@@ -22,7 +22,12 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         file: Dockerfile.android
-        outputs: type=local,dest=./
+        outputs: type=local,dest=./,tar=false  # 禁用压缩
+        build-args: |
+          BUILDKIT_PROGRESS=plain  # 显示详细日志
+
+    - name: Check File Exists
+      run: ls -lh ./aria2c
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
