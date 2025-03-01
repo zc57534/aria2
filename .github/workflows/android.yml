@@ -22,9 +22,10 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         file: Dockerfile.android
-        outputs: type=local,dest=./,tar=false  # 禁用压缩
-        build-args: |
-          BUILDKIT_PROGRESS=plain  # 显示详细日志
+        outputs: type=local,dest=./,tar=false
+        # 强制使用旧版构建模式
+        no-cache: true
+        platforms: linux/amd64  # 明确指定平台
 
     - name: Check File Exists
       run: ls -lh ./aria2c
