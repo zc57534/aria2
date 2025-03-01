@@ -1,4 +1,4 @@
-name: android
+name: Android Build
 
 on:
   workflow_dispatch:
@@ -11,20 +11,35 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    # 1. 拉取代码
     - uses: actions/checkout@v4
 
-    # 2. 纯编译（无缓存/无优化）
-    - name: Build with Docker
+    # 1. 构建 Docker 镜像
+    - name: Build Docker Image
       run: |
-        docker build \
-          -f Dockerfile.android \
-          --output type=local,dest=./ \
-          .
+        docker build -t aria2-android -f Dockerfile.android .
 
-    # 3. 直接上传产物
+    # 2. 创建临时容器提取文件
+    - name: Extract Binary
+      run: |
+        # 强制清理旧容器
+        docker ps -aq | xargs -r docker rm -f &>/dev/null || true
+        
+        # 创建容器并复制文件
+        docker create --name temp-container aria2-android
+        docker cp temp-container:/output/aria2c ./aria2c
+        docker rm -f temp-container
+
+        # 文件存在性检查
+        if [ ! -f ./aria2c ]; then
+          echo "错误：文件提取失败！"
+          exit 1
+        fi
+        ls -lh ./aria2c
+
+    # 3. 上传构建结果
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: aria2c-android
-        path: /output/aria2c
+        path: ./aria2c
+        retention-days: 3
