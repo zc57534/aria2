@@ -1,35 +1,69 @@
-name: android
+name: Android
 
 on:
   workflow_dispatch:
   push:
     paths:
-    - Dockerfile.android
+      - Dockerfile.android
   schedule:
-  - cron: '30 1 * * *'
+    - cron: '30 1 * * *'
 
-permissions: read-all
+# 关键优化：添加缓存所需的权限
+permissions:
+  contents: read
+  actions: write  # 必须允许写入才能使用 GHA 缓存
+  packages: read
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Docker Buildx
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 优化点 1：重用 Docker 层缓存
+    - name: Docker Layer Caching Setup
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: docker-layer-cache-${{ hashFiles('Dockerfile.android') }}
+
+    - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@v3
-    - name: Build
+      with:
+        driver: docker-container
+        buildkitd-config-inline: |
+          [worker.oci]
+            max-parallelism = 4  # 控制并行度避免资源争抢
+
+    # 优化点 2：启用增量构建缓存
+    - name: Build and Export Artifact
       uses: docker/build-push-action@v6
       with:
         file: Dockerfile.android
         context: .
-    - name: cpoutput
+        outputs: type=local,dest=./,tar=false
+        cache-from: |
+          type=gha,scope=${{ github.workflow }}-${{ github.ref }}
+          type=local,src=/tmp/.buildx-cache
+        cache-to: |
+          type=gha,mode=max,scope=${{ github.workflow }}-${{ github.ref }}
+          type=local,dest=/tmp/.buildx-cache-new
+        # 附加参数提升性能
+        platforms: linux/arm64  # 如果无需多架构可锁定平台
+        shm-size: 512m         # 防止编译时内存不足
+
+    # 优化点 3：更新本地缓存
+    - name: Update Local Cache
+      if: always()  # 即使构建失败也保留缓存
       run: |
-        cd /root/build/aria2/src
-        sudo ls
-        sudo mv /root/build/aria2/src/aria2c ./aria2c
-    - name: Upload build artifacts
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: aria2
+        name: aria2-android
         path: ./aria2c
+        retention-days: 3
