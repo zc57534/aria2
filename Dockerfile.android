@@ -1,4 +1,5 @@
-FROM ubuntu:22.04
+# 第一阶段：构建aria2
+FROM ubuntu:22.04 as builder
 MAINTAINER Tatsuhiro Tsujikawa
 
 WORKDIR /root
@@ -125,4 +126,6 @@ RUN autoreconf -i && \
     make -j$(nproc) && \
     $STRIP src/aria2c
 
-RUN mkdir -p /root/output && cp /root/build/aria2/src/aria2c /root/output
+# 第二阶段：复制二进制文件到最终镜像
+FROM ubuntu:22.04
+COPY --from=builder /root/build/aria2/src/aria2c /output/aria2c
