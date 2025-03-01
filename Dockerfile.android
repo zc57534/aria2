@@ -125,4 +125,4 @@ RUN autoreconf -i && \
     make -j$(nproc) && \
     $STRIP src/aria2c
 
-RUN mkdir -p /output && cp /root/build/aria2/src/aria2c /output
+RUN mkdir -p /root/output && cp /root/build/aria2/src/aria2c /root/output
