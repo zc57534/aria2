@@ -23,3 +23,9 @@ jobs:
       with:
         file: Dockerfile.android
         context: .
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: aria2-${{ matrix.platform }}
+        path: build_output/aria2
