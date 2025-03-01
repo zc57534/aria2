@@ -1,4 +1,4 @@
-name: Build Amd64 Android demo
+name: Build Amd64 Android
 
 on:
   workflow_dispatch:
