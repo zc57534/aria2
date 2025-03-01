@@ -2,6 +2,9 @@ name: Build Amd64 Android
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - Dockerfile.android
 
 jobs:
   build:
@@ -73,7 +76,7 @@ jobs:
 
     - name: Build Docker Image
       run: |
-        docker build -t aria2-android -f Dockerfile.android1 .
+        docker build -t aria2-android -f Dockerfile.android .
 
     - name: Extract Binary
       run: |
