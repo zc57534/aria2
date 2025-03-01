@@ -23,6 +23,11 @@ jobs:
       with:
         file: Dockerfile.android
         outputs: type=local,dest=./output
+    - name: test
+      run: |
+        ls
+        cd output
+        ls
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
