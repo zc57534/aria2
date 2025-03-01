@@ -1,4 +1,4 @@
-name: Build Amd64 Android
+name: Build Amd64 Android demo
 
 on:
   workflow_dispatch:
@@ -53,7 +53,7 @@ jobs:
       - name: Build aria2
         run: |
           if [ "${{ matrix.platform }}" == "linux-amd64" ]; then
-            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl ARIA2_STATIC=yes
+            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl --enable-static=yes --disable-shared CXXFLAGS="-Os -static" CFLAGS="-Os -static" LDFLAGS="-static"
           fi
           make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
 
