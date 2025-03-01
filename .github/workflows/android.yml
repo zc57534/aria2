@@ -25,6 +25,8 @@ jobs:
         context: .
     - name: cpoutput
       run: |
+        sudo cd /root/build/aria2/src
+        sudo ls
         sudo mv /root/build/aria2/src/aria2c ./aria2c
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
