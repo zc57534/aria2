@@ -145,7 +145,5 @@ RUN autoreconf -i && \
       PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" && \
     make -j${THREADS} && \
     ${STRIP} src/aria2c
-
-RUN mkdir -p /output && cp /root/build/aria2/src/aria2c /output
-
-VOLUME /output
+::contentReference[oaicite:0]{index=0}
+ 
