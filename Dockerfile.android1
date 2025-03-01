@@ -118,7 +118,7 @@ RUN autoreconf -i && \
       --with-libcares \
       --with-libz \
       --with-libssh2 \
-      LDFLAGS="-all-static -L$PREFIX/lib" \
+      LDFLAGS="-all-static -L$PREFIX/lib -ldl" \
       CXXFLAGS="-Os -g -static" \
       CFLAGS="-Os -g -static" \
       CPPFLAGS="-fPIE" \
