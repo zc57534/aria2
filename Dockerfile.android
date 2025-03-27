@@ -146,5 +146,6 @@ RUN autoreconf -i && \
       PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" && \
     make -j$(nproc) && \
     $STRIP src/aria2c
-FORM builder
+
+FROM ubuntu:22.04
 COPY --from=builder /root/build/aria2/src/aria2c /app/aria2c
