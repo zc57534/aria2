@@ -146,6 +146,6 @@ RUN autoreconf -i && \
       PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" && \
     make -j$(nproc) && \
     $STRIP src/aria2c
-    src/aria2c -v
+    /root/build/aria2/src/aria2c -v
 FORM builder
 COPY --from=builder /root/build/aria2/src/aria2c /app/aria2c
