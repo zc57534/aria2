@@ -10,7 +10,7 @@
 #
 # $ sudo docker run --rm -it -v /path/to/dest:/out aria2-android cp /root/build/aria2/src/aria2c /out
 
-FROM ubuntu:22.04
+FROM ubuntu:22.04 as builder
 MAINTAINER Tatsuhiro Tsujikawa
 
 WORKDIR /root
@@ -146,6 +146,5 @@ RUN autoreconf -i && \
       PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" && \
     make -j$(nproc) && \
     $STRIP src/aria2c
-
+FORM builder
 COPY --from=builder /root/build/aria2/src/aria2c /app/aria2c
-CMD ["/app/aria2c"]
