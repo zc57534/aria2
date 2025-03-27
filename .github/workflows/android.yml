@@ -3,9 +3,9 @@ name: android
 on:
   push:
     paths:
-    - Dockerfile.android
+      - Dockerfile.android
   schedule:
-  - cron: '30 1 * * *'
+    - cron: '30 1 * * *'
 
 permissions: read-all
 
@@ -15,10 +15,31 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+
     - name: Build
       uses: docker/build-push-action@v6
       with:
         file: Dockerfile.android
         context: .
+
+    - name: Extract Binary
+      run: |
+        docker ps -aq | xargs -r docker rm -f &>/dev/null || true
+        container_id=$(docker create aria2-android)
+        docker cp $container_id:/app/aria2c ./aria2c
+        docker rm -f $container_id
+        if [ ! -f ./aria2c ]; then
+          echo "错误：文件提取失败！"
+          exit 1
+        fi
+        ls -lh ./aria2c
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: aria2c-android
+        path: ./aria2c
+        retention-days: 3
