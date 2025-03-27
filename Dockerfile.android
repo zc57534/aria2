@@ -22,7 +22,7 @@ RUN apt-get update && \
     rm -rf /var/cache/apt/*
 
 # NDK version
-ENV NDK_VERSION=r26b
+ENV NDK_VERSION=r28
 ENV NDK=/root/android-ndk-$NDK_VERSION
 ENV TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64 \
     HOST=aarch64-linux-android \
@@ -146,6 +146,6 @@ RUN autoreconf -i && \
       PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" && \
     make -j$(nproc) && \
     $STRIP src/aria2c
-
-FROM ubuntu:22.04
+    src/aria2c -v
+FORM builder
 COPY --from=builder /root/build/aria2/src/aria2c /app/aria2c
