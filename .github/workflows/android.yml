@@ -24,11 +24,12 @@ jobs:
       with:
         file: Dockerfile.android
         context: .
+        tags: aria2-android:latest
 
     - name: Extract Binary
       run: |
         docker ps -aq | xargs -r docker rm -f &>/dev/null || true
-        container_id=$(docker create aria2-android)
+        container_id=$(docker create aria2-android:latest)
         docker cp $container_id:/app/aria2c ./aria2c
         docker rm -f $container_id
         if [ ! -f ./aria2c ]; then
