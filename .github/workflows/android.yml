@@ -25,6 +25,7 @@ jobs:
         file: Dockerfile.android
         context: .
         tags: aria2-android:latest
+        load: true
 
     - name: Extract Binary
       run: |
