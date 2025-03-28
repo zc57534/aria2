@@ -1,12 +1,12 @@
 name: android
 
 on:
-  workflow_dispatch:
   push:
     paths:
       - Dockerfile.android
   schedule:
     - cron: '30 1 * * *'
+  workflow_dispatch:
 
 permissions: read-all
 
