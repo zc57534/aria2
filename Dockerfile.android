@@ -123,7 +123,7 @@ RUN ./configure \
 
 # Build aria2
 WORKDIR /root/build
-RUN git clone -b $ARIA2_VERSION --depth 1 https://github.com/zc57534/aria2
+RUN git clone -b $ARIA2_VERSION --depth 1 https://github.com/zc57534/aria2/tree/demo2
 
 WORKDIR /root/build/aria2
 RUN autoreconf -i && \
