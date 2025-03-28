@@ -44,7 +44,7 @@ RUN curl -L -O https://dl.google.com/android/repository/android-ndk-$NDK_VERSION
 ARG ARIA2_VERSION=master
 
 # Library versions
-ENV OPENSSL_VERSION=3.4.1
+ENV OPENSSL_VERSION=3.3.3
 ENV OPENSSL_ARCHIVE=openssl-$OPENSSL_VERSION.tar.gz
 ENV OPENSSL_URI=https://www.openssl.org/source/$OPENSSL_ARCHIVE
 
