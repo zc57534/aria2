@@ -1,0 +1,106 @@
+name: Build Amd64 and Android
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - Dockerfile.android
+
+permissions: read-all
+
+jobs:
+  amd64_build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        platform: [linux-amd64]
+        include:
+          - platform: linux-amd64
+            host: x86_64-linux-gnu
+            target: aria2c_linux_amd64
+            cross_compile: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git tree which wget libcurl4-openssl-dev libevent-dev ca-certificates libssl-dev pkg-config build-essential intltool git autoconf automake libtool autopoint libxml2-dev liblzma-dev zlib1g-dev libgcrypt-dev libc-ares-dev libsqlite3-dev lzma
+          wget https://github.com/c-ares/c-ares/releases/download/v1.34.4/c-ares-1.34.4.tar.gz
+          tar -xzvf c-ares-1.34.4.tar.gz
+          cd c-ares-1.34.4
+          ./configure
+          sudo make
+          sudo make install
+
+      - name: Generate configure script
+        run: autoreconf -i
+
+      - name: Set up cross-compilation tools
+        run: |
+          if [ "${{ matrix.platform }}" == "linux-amd64" ]; then
+            export CC=x86_64-linux-gnu-gcc
+            export CXX=x86_64-linux-gnu-g++
+            export AR=x86_64-linux-gnu-ar
+            export AS=x86_64-linux-gnu-as
+            export LD=x86_64-linux-gnu-ld
+            export RANLIB=x86_64-linux-gnu-ranlib
+            export STRIP=x86_64-linux-gnu-strip
+          fi
+
+      - name: Build aria2
+        run: |
+          if [ "${{ matrix.platform }}" == "linux-amd64" ]; then
+            ./configure --host=x86_64-linux-gnu --without-gnutls --with-openssl --enable-static=yes --disable-shared CXXFLAGS="-Os -static" CFLAGS="-Os -static" LDFLAGS="-static"
+          fi
+          make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
+
+      - name: Rename and collect build artifacts
+        run: |
+          mkdir -p build_output
+          mv src/aria2c build_output/aria2
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aria2-${{ matrix.platform }}
+          path: build_output/aria2
+
+  android_build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Android binary
+        uses: docker/build-push-action@v6
+        with:
+          file: Dockerfile.android
+          context: .
+          tags: aria2-android:latest
+          load: true
+
+      - name: Extract Binary
+        run: |
+          docker ps -aq | xargs -r docker rm -f &>/dev/null || true
+          container_id=$(docker create aria2-android:latest)
+          docker cp $container_id:/app/aria2c ./aria2c
+          docker rm -f $container_id
+          if [ ! -f ./aria2c ]; then
+            echo "错误：文件提取失败！"
+            exit 1
+          fi
+          ls -lh ./aria2c
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aria2c-android
+          path: ./aria2c
+          retention-days: 3
