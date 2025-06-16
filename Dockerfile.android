@@ -9,6 +9,7 @@
 # /path/to/dest, do this:
 #
 # $ sudo docker run --rm -it -v /path/to/dest:/out aria2-android cp /root/build/aria2/src/aria2c /out
+#aria2pro
 
 FROM ubuntu:22.04 as builder
 MAINTAINER Tatsuhiro Tsujikawa
